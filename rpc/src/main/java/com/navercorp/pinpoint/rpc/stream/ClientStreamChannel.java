@@ -18,6 +18,7 @@ package com.navercorp.pinpoint.rpc.stream;
 
 import com.navercorp.pinpoint.common.util.Assert;
 import com.navercorp.pinpoint.rpc.packet.stream.StreamClosePacket;
+import com.navercorp.pinpoint.rpc.packet.stream.StreamCode;
 import com.navercorp.pinpoint.rpc.packet.stream.StreamCreatePacket;
 import com.navercorp.pinpoint.rpc.packet.stream.StreamResponsePacket;
 
@@ -29,30 +30,52 @@ import org.jboss.netty.channel.ChannelFuture;
  */
 public class ClientStreamChannel extends StreamChannel {
 
-    private final ClientStreamChannelMessageListener messageListener;
+    private final ClientStreamChannelEventHandler streamChannelEventHandler;
 
-    public ClientStreamChannel(Channel channel, int streamId, StreamChannelManager streamChannelManager, ClientStreamChannelMessageListener messageListener) {
-        super(channel, streamId, streamChannelManager);
-        this.messageListener = Assert.requireNonNull(messageListener, "messageListener must not be null");
+    public ClientStreamChannel(Channel channel, int streamId, StreamChannelRepository streamChannelRepository, ClientStreamChannelEventHandler streamChannelEventHandler) {
+        super(channel, streamId, streamChannelRepository);
+        this.streamChannelEventHandler = Assert.requireNonNull(streamChannelEventHandler, "streamChannelEventHandler must not be null");
     }
 
-    public ChannelFuture sendCreate(byte[] payload) {
+    public void connect(byte[] payload, long timeout) throws StreamException {
+        changeStateTo(StreamChannelStateCode.CONNECT_AWAIT, true);
+
+        sendCreate(payload);
+
+        boolean connected = awaitOpen(timeout);
+        if (connected) {
+            logger.info("Open streamChannel initialization completed. streamChannel:{} ", this);
+        } else {
+            throw new StreamException(StreamCode.CONNECTION_TIMEOUT);
+        }
+    }
+
+    private ChannelFuture sendCreate(byte[] payload) {
         state.assertState(StreamChannelStateCode.CONNECT_AWAIT);
 
         StreamCreatePacket packet = new StreamCreatePacket(getStreamId(), payload);
         return channel.write(packet);
     }
 
-    boolean changeStateConnectAwait() {
-        return changeStateTo(StreamChannelStateCode.CONNECT_AWAIT);
+    public void handleStreamResponsePacket(StreamResponsePacket packet) throws StreamException {
+        if (state.checkState(StreamChannelStateCode.CONNECTED)) {
+            streamChannelEventHandler.handleStreamResponsePacket(this, packet);
+        } else if (state.checkState(StreamChannelStateCode.CONNECT_AWAIT)) {
+            // may happen in the timing
+        } else {
+            throw new StreamException(StreamCode.STATE_NOT_CONNECTED);
+        }
     }
 
-    public void handleStreamData(StreamResponsePacket packet) {
-        messageListener.handleStreamData(this, packet);
+    @Override
+    public void handleStreamClosePacket(StreamClosePacket packet) {
+        streamChannelEventHandler.handleStreamClosePacket(this, packet);
+        disconnect(packet.getCode());
     }
 
-    void handleStreamClose(StreamClosePacket packet) {
-        messageListener.handleStreamClose(this, packet);
+    @Override
+    StreamChannelStateChangeEventHandler getStateChangeEventHandler() {
+        return streamChannelEventHandler;
     }
 
     @Override

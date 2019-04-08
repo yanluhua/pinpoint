@@ -16,6 +16,10 @@
 
 package com.navercorp.pinpoint.rpc.stream;
 
+import com.navercorp.pinpoint.common.util.Assert;
+import com.navercorp.pinpoint.rpc.packet.stream.StreamClosePacket;
+import com.navercorp.pinpoint.rpc.packet.stream.StreamCode;
+import com.navercorp.pinpoint.rpc.packet.stream.StreamCreatePacket;
 import com.navercorp.pinpoint.rpc.packet.stream.StreamCreateSuccessPacket;
 import com.navercorp.pinpoint.rpc.packet.stream.StreamResponsePacket;
 
@@ -27,8 +31,16 @@ import org.jboss.netty.channel.ChannelFuture;
  */
 public class ServerStreamChannel extends StreamChannel {
 
-    public ServerStreamChannel(Channel channel, int streamId, StreamChannelManager streamChannelManager) {
-        super(channel, streamId, streamChannelManager);
+    private final ServerStreamChannelMessageHandler streamChannelMessageHandler;
+    private StreamChannelStateChangeEventHandler stateChangeEventHandler = new LoggingStreamChannelStateChangeEventHandler();
+    
+    public ServerStreamChannel(Channel channel, int streamId, StreamChannelRepository streamChannelRepository, ServerStreamChannelMessageHandler streamChannelMessageHandler) {
+        super(channel, streamId, streamChannelRepository);
+        this.streamChannelMessageHandler = Assert.requireNonNull(streamChannelMessageHandler, "streamChannelMessageHandler must not be null");
+    }
+
+    public void setStateChangeEventHandler(StreamChannelStateChangeEventHandler stateChangeEventHandler) {
+        this.stateChangeEventHandler = Assert.requireNonNull(stateChangeEventHandler, "stateChangeEventHandler must not be null");
     }
 
     public ChannelFuture sendData(byte[] payload) {
@@ -45,8 +57,25 @@ public class ServerStreamChannel extends StreamChannel {
         return channel.write(packet);
     }
 
-    boolean changeStateConnectArrived() {
-        return changeStateTo(StreamChannelStateCode.CONNECT_ARRIVED);
+    public void handleStreamCreatePacket(StreamCreatePacket packet) throws StreamException {
+        changeStateTo(StreamChannelStateCode.CONNECT_ARRIVED, true);
+        StreamCode result = streamChannelMessageHandler.handleStreamCreatePacket(this, packet);
+        if (result != StreamCode.OK) {
+            throw new StreamException(result);
+        }
+        changeStateConnected();
+        sendCreateSuccess();
+    }
+
+    @Override
+    public void handleStreamClosePacket(StreamClosePacket packet) {
+        streamChannelMessageHandler.handleStreamClosePacket(this, packet);
+        disconnect(packet.getCode());
+    }
+
+    @Override
+    public StreamChannelStateChangeEventHandler getStateChangeEventHandler() {
+        return stateChangeEventHandler;
     }
 
     @Override

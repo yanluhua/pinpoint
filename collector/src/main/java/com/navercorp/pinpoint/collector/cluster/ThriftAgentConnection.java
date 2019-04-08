@@ -23,6 +23,7 @@ import com.navercorp.pinpoint.rpc.server.PinpointServer;
 import com.navercorp.pinpoint.rpc.util.MapUtils;
 import com.navercorp.pinpoint.thrift.io.TCommandType;
 import com.navercorp.pinpoint.thrift.io.TCommandTypeVersion;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.thrift.TBase;
 import org.springframework.util.NumberUtils;
@@ -35,35 +36,34 @@ import java.util.Map;
 /**
  * @author koo.taejin
  */
-public class PinpointServerClusterPoint implements TargetClusterPoint {
+public class ThriftAgentConnection implements ClusterPoint<byte[]> {
 
     private final PinpointServer pinpointServer;
 
-    private final String applicationName;
-    private final String agentId;
-    private final long startTimeStamp;
+    private final AgentInfo agentInfo;
 
-    private final String version;
     private final List<TCommandType> supportCommandList;
 
-    public PinpointServerClusterPoint(PinpointServer pinpointServer) {
+    public ThriftAgentConnection(PinpointServer pinpointServer) {
         Assert.requireNonNull(pinpointServer, "pinpointServer must not be null.");
         this.pinpointServer = pinpointServer;
 
         Map<Object, Object> properties = pinpointServer.getChannelProperties();
-        this.version = MapUtils.getString(properties, HandshakePropertyType.VERSION.getName());
-        Assert.isTrue(!StringUtils.isBlank(version), "Version must not be null or empty.");
 
-        this.supportCommandList = newSupportCommandList(properties);
-
-        this.applicationName = MapUtils.getString(properties, HandshakePropertyType.APPLICATION_NAME.getName());
+        String applicationName = MapUtils.getString(properties, HandshakePropertyType.APPLICATION_NAME.getName());
         Assert.isTrue(!StringUtils.isBlank(applicationName), "ApplicationName must not be null or empty.");
 
-        this.agentId = MapUtils.getString(properties, HandshakePropertyType.AGENT_ID.getName());
+        String  agentId = MapUtils.getString(properties, HandshakePropertyType.AGENT_ID.getName());
         Assert.isTrue(!StringUtils.isBlank(agentId), "AgentId must not be null or empty.");
 
-        this.startTimeStamp = MapUtils.getLong(properties, HandshakePropertyType.START_TIMESTAMP.getName());
+        long  startTimeStamp = MapUtils.getLong(properties, HandshakePropertyType.START_TIMESTAMP.getName());
         Assert.isTrue(startTimeStamp > 0, "StartTimeStamp is must greater than zero.");
+
+        String  version = MapUtils.getString(properties, HandshakePropertyType.VERSION.getName());
+        Assert.isTrue(!StringUtils.isBlank(version), "Version must not be null or empty.");
+
+        this.agentInfo = new AgentInfo(applicationName, agentId, startTimeStamp, version);
+        this.supportCommandList = newSupportCommandList(properties);
     }
 
     private List<TCommandType> newSupportCommandList(Map<Object, Object> properties) {
@@ -86,32 +86,13 @@ public class PinpointServerClusterPoint implements TargetClusterPoint {
     }
 
     @Override
-    public void send(byte[] payload) {
-        pinpointServer.send(payload);
-    }
-
-    @Override
     public Future request(byte[] payload) {
         return pinpointServer.request(payload);
     }
 
     @Override
-    public String getApplicationName() {
-        return applicationName;
-    }
-
-    @Override
-    public String getAgentId() {
-        return agentId;
-    }
-
-    public long getStartTimeStamp() {
-        return startTimeStamp;
-    }
-
-    @Override
-    public String gerVersion() {
-        return version;
+    public AgentInfo getDestAgentInfo() {
+        return agentInfo;
     }
 
     @Override
@@ -122,7 +103,7 @@ public class PinpointServerClusterPoint implements TargetClusterPoint {
             }
         }
 
-        TCommandTypeVersion commandVersion = TCommandTypeVersion.getVersion(version);
+        TCommandTypeVersion commandVersion = TCommandTypeVersion.getVersion(agentInfo.getVersion());
         if (commandVersion.isSupportCommand(command)) {
             return true;
         }
@@ -139,45 +120,32 @@ public class PinpointServerClusterPoint implements TargetClusterPoint {
         StringBuilder log = new StringBuilder(32);
         log.append(this.getClass().getSimpleName());
         log.append("(");
-        log.append(applicationName);
-        log.append("/");
-        log.append(agentId);
-        log.append("/");
-        log.append(startTimeStamp);
-        log.append(")");
-        log.append(", version:");
-        log.append(version);
+        log.append(agentInfo.toString());
         log.append(", supportCommandList:");
         log.append(supportCommandList);
         log.append(", pinpointServer:");
         log.append(pinpointServer);
+        log.append(")");
         
         return log.toString();
     }
-    
+
     @Override
     public int hashCode() {
-        final int prime = 31;
-        int result = 17;
-        
-        result = prime * result + ((applicationName == null) ? 0 : applicationName.hashCode());
-        result = prime * result + ((agentId == null) ? 0 : agentId.hashCode());
-        result = prime * result + (int) (startTimeStamp ^ (startTimeStamp >>> 32));
-        result = prime * result + ((version == null) ? 0 : version.hashCode());
-        return result;
+        return agentInfo.hashCode();
     }
-    
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {
             return true;
         }
 
-        if (!(obj instanceof PinpointServerClusterPoint)) {
+        if (!(obj instanceof ThriftAgentConnection)) {
             return false;
         }
 
-        if (this.getPinpointServer() == ((PinpointServerClusterPoint) obj).getPinpointServer()) {
+        if (this.getPinpointServer() == ((ThriftAgentConnection) obj).getPinpointServer()) {
             return true;
         }
 

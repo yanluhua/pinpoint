@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.navercorp.pinpoint.web.util.ValueValidator;
 import com.navercorp.pinpoint.web.vo.exception.PinpointUserGroupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +49,6 @@ public class UserGroupController {
     
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    private static final String SSO_USER = "SSO_USER";
     public static final String EDIT_GROUP_ONLY_GROUPMEMBER = "permission_userGroup_editGroupOnlyGroupMember";
     public static final String USER_GROUP_ID = "userGroupId";
     public static final String USER_ID = "userId";
@@ -58,13 +58,13 @@ public class UserGroupController {
 
     @RequestMapping(method = RequestMethod.POST)
     @ResponseBody
-    public Map<String, String> createUserGroup(@RequestBody UserGroup userGroup, @RequestHeader(value=SSO_USER, required=false) String userId) {
-        if (StringUtils.isEmpty(userGroup.getId())) {
-            return createErrorMessage("500", "There is not id of userGroup in params to create user group");
+    public Map<String, String> createUserGroup(@RequestBody UserGroup userGroup) {
+        if (ValueValidator.validateUserGroupId(userGroup.getId())) {
+            return createErrorMessage("500", "usergroupId pattern is invalid to create user group");
         }
 
         try {
-            String userGroupNumber = userGroupService.createUserGroup(userGroup, userId);
+            String userGroupNumber = userGroupService.createUserGroup(userGroup);
             Map<String, String> result = new HashMap<>();
             result.put("number", userGroupNumber);
             return result;
@@ -77,13 +77,13 @@ public class UserGroupController {
     @PreAuthorize("hasPermission(#userGroup.getId(), null, T(com.navercorp.pinpoint.web.controller.UserGroupController).EDIT_GROUP_ONLY_GROUPMEMBER)")
     @RequestMapping(method = RequestMethod.DELETE)
     @ResponseBody
-    public Map<String, String> deleteUserGroup(@RequestBody UserGroup userGroup, @RequestHeader(value=SSO_USER, required=false) String userId) {
+    public Map<String, String> deleteUserGroup(@RequestBody UserGroup userGroup) {
         if (StringUtils.isEmpty(userGroup.getId())) {
             return createErrorMessage("500", "there is id of userGroup in params to delete user group");
         }
 
         try {
-            userGroupService.deleteUserGroup(userGroup, userId);
+            userGroupService.deleteUserGroup(userGroup);
             Map<String, String> result = new HashMap<>();
             result.put("result", "SUCCESS");
             return result;
@@ -122,7 +122,7 @@ public class UserGroupController {
     @PreAuthorize("hasPermission(#userGroupMember.getUserGroupId(), null, T(com.navercorp.pinpoint.web.controller.UserGroupController).EDIT_GROUP_ONLY_GROUPMEMBER)")
     @RequestMapping(value = "/member", method = RequestMethod.DELETE)
     @ResponseBody
-    public Map<String, String> deleteUserGroupMember(@RequestBody UserGroupMemberParam userGroupMember, @RequestHeader(value=SSO_USER, required=false) String userId) {
+    public Map<String, String> deleteUserGroupMember(@RequestBody UserGroupMemberParam userGroupMember) {
         if (StringUtils.isEmpty(userGroupMember.getUserGroupId()) || StringUtils.isEmpty(userGroupMember.getMemberId())) {
             return createErrorMessage("500", "there is not userGroupId or memberId in params to delete user group member");
         }

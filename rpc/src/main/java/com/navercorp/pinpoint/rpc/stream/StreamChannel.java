@@ -16,7 +16,9 @@
 
 package com.navercorp.pinpoint.rpc.stream;
 
+import com.navercorp.pinpoint.rpc.packet.stream.StreamClosePacket;
 import com.navercorp.pinpoint.rpc.packet.stream.StreamCode;
+import com.navercorp.pinpoint.rpc.packet.stream.StreamPacket;
 import com.navercorp.pinpoint.rpc.packet.stream.StreamPingPacket;
 import com.navercorp.pinpoint.rpc.packet.stream.StreamPongPacket;
 
@@ -26,10 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.SocketAddress;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -42,38 +41,22 @@ public abstract class StreamChannel {
 
     private final ConcurrentHashMap<String, Object> attribute = new ConcurrentHashMap<String, Object>();
 
-    final Channel channel;
+    protected final Channel channel;
     private final int streamChannelId;
-    private final StreamChannelManager streamChannelManager;
-
-    final StreamChannelState state;
+    protected final StreamChannelState state  = new StreamChannelState();
     private final CountDownLatch openLatch = new CountDownLatch(1);
 
-    private List<StreamChannelStateChangeEventHandler> stateChangeEventHandlers = new CopyOnWriteArrayList<StreamChannelStateChangeEventHandler>();
+    protected final StreamChannelRepository streamChannelRepository;
 
-    public StreamChannel(Channel channel, int streamId, StreamChannelManager streamChannelManager) {
+    public StreamChannel(Channel channel, int streamId, StreamChannelRepository streamChannelRepository) {
         this.channel = channel;
         this.streamChannelId = streamId;
-        this.streamChannelManager = streamChannelManager;
-
-        this.state = new StreamChannelState();
+        this.streamChannelRepository = streamChannelRepository;
     }
 
-    public void addStateChangeEventHandler(StreamChannelStateChangeEventHandler stateChangeEventHandler) {
-        stateChangeEventHandlers.add(stateChangeEventHandler);
-    }
-
-    public void setStateChangeEventHandler(List<StreamChannelStateChangeEventHandler> stateChangeEventHandlers) {
-        this.stateChangeEventHandlers = stateChangeEventHandlers;
-    }
-
-
-    public List<StreamChannelStateChangeEventHandler> getStateChangeEventHandlers() {
-        return new ArrayList<StreamChannelStateChangeEventHandler>(stateChangeEventHandlers);
-    }
-
-    boolean changeStateOpen() {
-        return changeStateTo(StreamChannelStateCode.OPEN);
+    void init() throws StreamException {
+        changeStateTo(StreamChannelStateCode.OPEN, true);
+        streamChannelRepository.registerIfAbsent(this);
     }
 
     boolean changeStateConnected() {
@@ -84,7 +67,7 @@ public abstract class StreamChannel {
         }
     }
 
-    boolean changeStateClose() {
+    private boolean changeStateClose() {
         try {
             if (state.checkState(StreamChannelStateCode.CLOSED)) {
                 return true;
@@ -93,16 +76,6 @@ public abstract class StreamChannel {
         } finally {
             openLatch.countDown();
         }
-    }
-
-    public boolean awaitOpen() {
-        try {
-            openLatch.await();
-            return state.checkState(StreamChannelStateCode.CONNECTED);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-        return false;
     }
 
     public boolean awaitOpen(long timeoutMillis) {
@@ -135,7 +108,42 @@ public abstract class StreamChannel {
     }
 
     public void close() {
-        this.streamChannelManager.clearResourceAndSendClose(getStreamId(), StreamCode.STATE_CLOSED);
+        close(StreamCode.STATE_CLOSED);
+    }
+
+    public void close(StreamCode code) {
+        clearStreamChannelResource();
+        if (!StreamCode.isConnectionError(code)) {
+            sendClose(streamChannelId, code);
+        }
+    }
+
+    public void close(StreamPacket streamPacket) {
+        clearStreamChannelResource();
+        channel.write(streamPacket);
+    }
+
+    private void clearStreamChannelResource() {
+        streamChannelRepository.unregister(this);
+        changeStateClose();
+    }
+
+    private ChannelFuture sendClose(int streamChannelId, StreamCode code) {
+        if (channel.isConnected()) {
+            StreamClosePacket packet = new StreamClosePacket(streamChannelId, code);
+            return this.channel.write(packet);
+        } else {
+            return null;
+        }
+    }
+
+    public void disconnect() {
+        disconnect(StreamCode.STATE_CLOSED);
+    }
+
+    public void disconnect(StreamCode streamCode) {
+        logger.info("{} disconnected. from remote streamChannel:{} caused:{}", this, streamCode);
+        clearStreamChannelResource();
     }
 
     public SocketAddress getRemoteAddress() {
@@ -146,21 +154,31 @@ public abstract class StreamChannel {
         return streamChannelId;
     }
 
+    protected boolean changeStateTo(StreamChannelStateCode nextState, boolean throwException) throws StreamException {
+        StreamChannelStateCode currentState = getCurrentState();
+        boolean changed = changeStateTo(currentState, nextState);
+        if (!changed && throwException) {
+            throw new StreamException(StreamCode.STATE_ERROR, "Failed to change state. updateWanted:<" + nextState + ">, current:<" + currentState + ">");
+        }
+        return changed;
+    }
+
     protected boolean changeStateTo(StreamChannelStateCode nextState) {
         StreamChannelStateCode currentState = getCurrentState();
+        return changeStateTo(currentState, nextState);
+    }
 
+    protected boolean changeStateTo(StreamChannelStateCode currentState, StreamChannelStateCode nextState) {
         boolean isChanged = state.to(currentState, nextState);
         if (!isChanged && (getCurrentState() != StreamChannelStateCode.ILLEGAL_STATE)) {
             changeStateTo(StreamChannelStateCode.ILLEGAL_STATE);
         }
 
         if (isChanged) {
-            for (StreamChannelStateChangeEventHandler handler : stateChangeEventHandlers) {
-                try {
-                    handler.eventPerformed(this, nextState);
-                } catch (Exception e) {
-                    handler.exceptionCaught(this, nextState, e);
-                }
+            try {
+                getStateChangeEventHandler().stateUpdated(this, nextState);
+            } catch (Exception e) {
+                logger.warn("Please handling exception in StreamChannelStateChangeEventHandler.stateUpdated method. message:{}", e.getMessage(), e);
             }
         }
 
@@ -178,6 +196,10 @@ public abstract class StreamChannel {
     public final Object removeAttribute(String key) {
         return attribute.remove(key);
     }
+
+    abstract void handleStreamClosePacket(StreamClosePacket packet);
+
+    abstract StreamChannelStateChangeEventHandler getStateChangeEventHandler();
 
     @Override
     public String toString() {

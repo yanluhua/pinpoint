@@ -18,10 +18,8 @@ package com.navercorp.pinpoint.rpc.client;
 
 import com.navercorp.pinpoint.rpc.packet.stream.StreamPacket;
 import com.navercorp.pinpoint.rpc.stream.ClientStreamChannel;
-import com.navercorp.pinpoint.rpc.stream.ClientStreamChannelMessageListener;
-import com.navercorp.pinpoint.rpc.stream.StreamChannel;
+import com.navercorp.pinpoint.rpc.stream.ClientStreamChannelEventHandler;
 import com.navercorp.pinpoint.rpc.stream.StreamChannelManager;
-import com.navercorp.pinpoint.rpc.stream.StreamChannelStateChangeEventHandler;
 import com.navercorp.pinpoint.rpc.stream.StreamException;
 
 import org.jboss.netty.channel.Channel;
@@ -48,12 +46,8 @@ public class PinpointClientHandlerContext {
         return channel;
     }
 
-    public ClientStreamChannel openStream(byte[] payload, ClientStreamChannelMessageListener messageListener) throws StreamException {
-        return openStream(payload, messageListener, null);
-    }
-
-    public ClientStreamChannel openStream(byte[] payload, ClientStreamChannelMessageListener messageListener, StreamChannelStateChangeEventHandler<ClientStreamChannel> stateChangeListener) throws StreamException {
-        return streamChannelManager.openStream(payload, messageListener, stateChangeListener);
+    public ClientStreamChannel openStream(byte[] payload, ClientStreamChannelEventHandler streamChannelEventHandler) throws StreamException {
+        return streamChannelManager.openStream(payload, streamChannelEventHandler);
     }
 
     public void handleStreamEvent(StreamPacket message) {
@@ -64,8 +58,4 @@ public class PinpointClientHandlerContext {
         streamChannelManager.close();
     }
 
-    public StreamChannel getStreamChannel(int streamChannelId) {
-        return streamChannelManager.findStreamChannel(streamChannelId);
-    }
-    
 }

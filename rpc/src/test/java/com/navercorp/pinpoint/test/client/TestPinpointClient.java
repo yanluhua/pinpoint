@@ -23,9 +23,8 @@ import com.navercorp.pinpoint.rpc.client.DefaultPinpointClientFactory;
 import com.navercorp.pinpoint.rpc.client.PinpointClient;
 import com.navercorp.pinpoint.rpc.client.PinpointClientFactory;
 import com.navercorp.pinpoint.rpc.stream.ClientStreamChannel;
-import com.navercorp.pinpoint.rpc.stream.ClientStreamChannelMessageListener;
-import com.navercorp.pinpoint.rpc.stream.ServerStreamChannelMessageListener;
-import com.navercorp.pinpoint.rpc.stream.StreamChannel;
+import com.navercorp.pinpoint.rpc.stream.ClientStreamChannelEventHandler;
+import com.navercorp.pinpoint.rpc.stream.ServerStreamChannelMessageHandler;
 import com.navercorp.pinpoint.rpc.stream.StreamException;
 import com.navercorp.pinpoint.test.server.TestPinpointServerAcceptor;
 
@@ -49,18 +48,18 @@ public class TestPinpointClient {
     }
 
     public TestPinpointClient(MessageListener messageListener) {
-        this(messageListener, (ServerStreamChannelMessageListener) null);
+        this(messageListener, (ServerStreamChannelMessageHandler) null);
     }
 
-    public TestPinpointClient(MessageListener messageListener, ServerStreamChannelMessageListener serverStreamChannelMessageListener) {
-        this(messageListener, serverStreamChannelMessageListener, Collections.EMPTY_MAP);
+    public TestPinpointClient(MessageListener messageListener, ServerStreamChannelMessageHandler serverStreamChannelMessageHandler) {
+        this(messageListener, serverStreamChannelMessageHandler, Collections.EMPTY_MAP);
     }
 
     public TestPinpointClient(MessageListener messageListener, Map<String, Object> param) {
         this(messageListener, null, param);
     }
 
-    public TestPinpointClient(MessageListener messageListener, ServerStreamChannelMessageListener serverStreamChannelMessageListener, Map<String, Object> param) {
+    public TestPinpointClient(MessageListener messageListener, ServerStreamChannelMessageHandler serverStreamChannelMessageHandler, Map<String, Object> param) {
         Assert.requireNonNull(param, "param must not be null");
 
         PinpointClientFactory pinpointClientFactory = new DefaultPinpointClientFactory();
@@ -71,8 +70,8 @@ public class TestPinpointClient {
             pinpointClientFactory.setMessageListener(messageListener);
         }
 
-        if (serverStreamChannelMessageListener != null) {
-            pinpointClientFactory.setServerStreamChannelMessageListener(serverStreamChannelMessageListener);
+        if (serverStreamChannelMessageHandler != null) {
+            pinpointClientFactory.setServerStreamChannelMessageHandler(serverStreamChannelMessageHandler);
         }
 
         this.pinpointClientFactory = pinpointClientFactory;
@@ -90,14 +89,9 @@ public class TestPinpointClient {
         this.pinpointClient = pinpointClientFactory.connect(host, port);
     }
 
-    public ClientStreamChannel openStream(byte[] payload, ClientStreamChannelMessageListener messageListener) throws StreamException {
+    public ClientStreamChannel openStream(byte[] payload, ClientStreamChannelEventHandler streamChannelEventHandler) throws StreamException {
         Assert.requireNonNull(pinpointClient, "pinpointClient must not be null");
-        return pinpointClient.openStream(payload, messageListener);
-    }
-
-    public StreamChannel findStreamChannel(int streamChannelId) {
-        Assert.requireNonNull(pinpointClient, "pinpointClient must not be null");
-        return pinpointClient.findStreamChannel(streamChannelId);
+        return pinpointClient.openStream(payload, streamChannelEventHandler);
     }
 
     public void disconnect() {

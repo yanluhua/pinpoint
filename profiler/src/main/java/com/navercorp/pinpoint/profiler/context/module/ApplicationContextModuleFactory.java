@@ -41,12 +41,16 @@ public class ApplicationContextModuleFactory implements ModuleFactory {
     }
 
     private Module newRpcModule(AgentOption agentOption) {
-        final String spanDataSenderTransportType = agentOption.getProfilerConfig().getSpanDataSenderTransportType();
-        if (spanDataSenderTransportType.equalsIgnoreCase("GRPC")) {
-            logger.info("load GRpcModule");
-            return new GRpcModule();
+        final String transportModule = agentOption.getProfilerConfig().getTransportModule();
+        if ("GRPC".equalsIgnoreCase(transportModule)) {
+            logger.info("load GrpcModule");
+            return new GrpcModule();
         }
-        logger.info("load PinpointRpcModule");
-        return new RpcModule();
+        if ("THRIFT".equalsIgnoreCase(transportModule)) {
+            logger.info("load ThriftModule");
+            return new ThriftModule();
+        }
+        logger.info("load ThriftModule");
+        return new ThriftModule();
     }
 }
