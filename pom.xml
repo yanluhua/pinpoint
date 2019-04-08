@@ -71,7 +71,7 @@
         <module>bootstrap-core</module>
         <module>bootstrap-java7</module>
         <module>bootstrap-java8</module>
-        <module>bootstrap-java9</module>
+<!--        <module>bootstrap-java9</module>-->
         <module>collector</module>
         <module>commons</module>
         <module>commons-hbase</module>
@@ -93,9 +93,9 @@
 
     <properties>
         <encoding>UTF-8</encoding>
-        <jdk.version>1.6</jdk.version>
-        <jdk.home>${env.JAVA_6_HOME}</jdk.home>
-        <test.jdk.home>${jdk.home}</test.jdk.home>
+        <jdk.version>1.8</jdk.version>
+        <!--<jdk.home>${env.JAVA_8_HOME}</jdk.home>-->
+        <!--<test.jdk.home>${jdk.home}</test.jdk.home>-->
 
         <!-- hbase -->
         <hbase.shaded.client.version>1.2.6.1</hbase.shaded.client.version>
@@ -214,11 +214,11 @@
                 <artifactId>pinpoint-bootstrap-java8</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <dependency>
+            <!--<dependency>
                 <groupId>com.navercorp.pinpoint</groupId>
                 <artifactId>pinpoint-bootstrap-java9</artifactId>
                 <version>${project.version}</version>
-            </dependency>
+            </dependency>-->
             <dependency>
                 <groupId>com.navercorp.pinpoint</groupId>
                 <artifactId>pinpoint-profiler</artifactId>
@@ -802,7 +802,7 @@
                     <encoding>${encoding}</encoding>
                     <showDeprecation>true</showDeprecation>
                     <compilerVersion>${jdk.version}</compilerVersion>
-                    <executable>${jdk.home}/bin/javac</executable>
+                   <!-- <executable>${jdk.home}/bin/javac</executable>-->
                 </configuration>
             </plugin>
             <plugin>
@@ -858,7 +858,7 @@
                     <excludeFilterFile>${maven.multiModuleProjectDirectory}/spotbugs-exclude.xml</excludeFilterFile>
                 </configuration>
             </plugin>
-            <plugin>
+            <!--<plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
                 <version>${plugin.enforcer.version}</version>
@@ -897,7 +897,7 @@
                         </configuration>
                     </execution>
                 </executions>
-            </plugin>
+            </plugin>-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-pmd-plugin</artifactId>
