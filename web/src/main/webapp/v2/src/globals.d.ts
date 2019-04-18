@@ -174,6 +174,7 @@ interface IFilter {
 }
 
 interface ISelectedTarget {
+    clickParam: any;
     endTime: string;
     period: string;
     isNode?: boolean;
@@ -265,6 +266,8 @@ interface IHoveredInfo {
     time?: number;
     offsetX?: number;
     offsetY?: number;
+    applicationId?: string;
+    agentId?: string;
 }
 // @store
 interface IServerAndAgentData {

@@ -17,13 +17,17 @@
 package com.navercorp.pinpoint.collector.receiver.grpc;
 
 import com.navercorp.pinpoint.collector.receiver.DispatchHandler;
-import com.navercorp.pinpoint.collector.receiver.grpc.service.TraceService;
+import com.navercorp.pinpoint.collector.receiver.grpc.service.SpanService;
 import com.navercorp.pinpoint.common.server.util.AddressFilter;
 import com.navercorp.pinpoint.common.util.Assert;
+import com.navercorp.pinpoint.grpc.server.MetadataServerTransportFilter;
 import com.navercorp.pinpoint.grpc.server.ServerFactory;
+import com.navercorp.pinpoint.grpc.server.TransportMetadataFactory;
+import com.navercorp.pinpoint.grpc.server.TransportMetadataServerInterceptor;
 import io.grpc.BindableService;
 import com.navercorp.pinpoint.grpc.server.ServerOption;
 import io.grpc.Server;
+import io.grpc.ServerInterceptor;
 import io.grpc.ServerTransportFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,8 +75,15 @@ public class SpanServer implements InitializingBean, DisposableBean, BeanNameAwa
         ServerTransportFilter permissionServerTransportFilter = new PermissionServerTransportFilter(addressFilter);
         this.serverFactory.addTransportFilter(permissionServerTransportFilter);
 
+        TransportMetadataFactory transportMetadataFactory = new TransportMetadataFactory();
+        final ServerTransportFilter metadataTransportFilter = new MetadataServerTransportFilter(transportMetadataFactory);
+        this.serverFactory.addTransportFilter(metadataTransportFilter);
+
+        ServerInterceptor transportMetadataServerInterceptor = new TransportMetadataServerInterceptor();
+        this.serverFactory.addInterceptor(transportMetadataServerInterceptor);
+
         // Add service
-        BindableService traceService = new TraceService(this.dispatchHandler);
+        BindableService traceService = new SpanService(this.dispatchHandler);
         this.serverFactory.addService(traceService);
 
         this.server = serverFactory.build();

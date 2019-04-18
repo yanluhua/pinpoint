@@ -35,7 +35,7 @@
 | Apache HttpAsyncClient                                                            | httpasyncclient            | 4.0     | 4.1.3   |                        | <AG>
 | \*Akka HTTP                                                                       | akka-http_2.12             | 10.1.0  | 10.1.x  |                        | 
 | \*Kafka                                                                           | kafka-clients              | 0.11.0.1|         |                        |
-| GRPC                                                                              | grpc-stub                  | 1.8.0   | 1.19.0  |                        | <AG>
+| GRPC                                                                              | grpc-stub                  | 1.8.0   | 1.20.0  |                        | <AG>
 |                                                                                   |                            |         |         |                        | 
 | Log4j                                                                             | log4j                      | 1.2.16  | 1.2.17  |                        | <AG> 
 | Logback                                                                           | logback-classic            | 1.0.13  | 1.2.3   |                        | <AG> 
@@ -48,7 +48,7 @@
 | MariaDB Connector/J                                                               | mariadb-java-client        | 1.3.0   | 2.4.1   |                        | <AG>
 | MongoDB Java Driver                                                               | mongodb-driver             | 3.0.0   | 3.11.0  |                        | <AG>
 | Datastax Java Driver                                                              | cassandra-driver-core      | 2.0.10  | 3.7.1   |                        | <AG>
-| Druid                                                                             | druid                      | 1.0.0   | 1.1.15  |                        | <AG>
+| Druid                                                                             | druid                      | 1.0.0   | 1.1.16  |                        | <AG>
 | \*Cubrid                                                                          | cubrid-jdbc-driver         | 8.4.1   | 10.0.0  |                        | 
 | \*Commons DBCP                                                                    | commons-dbcp               | 1.0     | 1.4     |                        | 
 | \*Commons DBCP2                                                                   | commons-dbcp2              | 2.0     | 2.5.0   |                        | 
@@ -68,7 +68,7 @@
 |                                                                                   |                            |         |         |                        |
 | Gson                                                                              | gson                       | 1.1     | 2.8.3   |                        | <AG>
 | Json                                                                              | json-lib                   | 1.0     | 2.2.2   |                        | <AG>
-| FastJson                                                                          | fastjson                   | 1.2.10  | 1.2.56  |                        | <AG>
+| FastJson                                                                          | fastjson                   | 1.2.10  | 1.2.57  |                        | <AG>
 | Dubbo                                                                             | dubbo                      | 2.5.1   | 2.6.6   |                        | <AG>
   
 
