@@ -70,7 +70,7 @@
         <module>bootstrap-core-optional</module>
         <module>bootstrap</module>
         <module>bootstrap-java8</module>
-        <module>bootstrap-java9</module>
+      <!--  <module>bootstrap-java9</module>-->
         <module>collector</module>
         <module>commons</module>
         <module>commons-hbase</module>

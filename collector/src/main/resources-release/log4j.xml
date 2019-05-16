@@ -35,33 +35,36 @@
     </appender>
 
     <logger name="com.navercorp.pinpoint" additivity="false">
-        <level value="INFO"/>
+        <level value="TRACE"/>
         <appender-ref ref="console"/>
     </logger>
-
+    <logger name="com.navercorp.pinpoint.collector" additivity="false">
+        <level value="TRACE"/>
+        <appender-ref ref="console"/>
+    </logger>
     <logger name="com.navercorp.pinpoint.cluster.route.filter" additivity="false">
-        <level value="INFO"/>
+        <level value="TRACE"/>
         <appender-ref ref="console"/>
     </logger>
 
     <logger name="com.navercorp.pinpoint.collector.handler" additivity="false">
-        <level value="INFO"/>
+        <level value="TRACE"/>
         <appender-ref ref="console"/>
     </logger>
 
     <logger name="org.apache.zookeeper" additivity="false">
-        <level value="INFO"/>
+        <level value="TRACE"/>
         <appender-ref ref="console"/>
     </logger>
 
     <logger name="org.apache.hadoop.hbase" additivity="false">
-        <level value="INFO"/>
+        <level value="TRACE"/>
         <appender-ref ref="console"/>
     </logger>
 
     <logger name="com.navercorp.pinpoint.collector.StateReport" additivity="false">
         <!-- disable : WARN -->
-        <level value="INFO"/>
+        <level value="TRACE"/>
         <appender-ref ref="stat-appender"/>
         <!--<appender-ref ref="console"/>-->
     </logger>

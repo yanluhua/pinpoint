@@ -26,12 +26,12 @@
     </appender>
 
     <logger name="com.navercorp.pinpoint" additivity="false">
-        <level value="DEBUG"/>
+        <level value="TRACE"/>
         <appender-ref ref="console"/>
     </logger>
 
     <logger name="com.navercorp.pinpoint.web.filter" additivity="false">
-        <level value="DEBUG"/>
+        <level value="TRACE"/>
         <appender-ref ref="console"/>
     </logger>
 
@@ -41,7 +41,7 @@
     </logger>
 
     <logger name="com.navercorp.pinpoint.web.applicationmap" additivity="false">
-        <level value="DEBUG"/>
+        <level value="TRACE"/>
         <appender-ref ref="console"/>
     </logger>
 
@@ -51,59 +51,59 @@
     </logger>
 
     <logger name="com.navercorp.pinpoint.web.mapper" additivity="false">
-        <level value="DEBUG"/>
+        <level value="TRACE"/>
         <appender-ref ref="console"/>
     </logger>
 
     <logger name="com.navercorp.pinpoint.web.service" additivity="false">
-        <level value="DEBUG"/>
+        <level value="TRACE"/>
         <appender-ref ref="console"/>
     </logger>
 
     <logger name="com.navercorp.pinpoint.web.dao" additivity="false">
-        <level value="DEBUG"/>
+        <level value="TRACE"/>
         <appender-ref ref="console"/>
     </logger>
 
     <logger name="com.navercorp.pinpoint.web.mapper.ApiMetaDataMapper" additivity="false">
-        <level value="INFO"/>
+        <level value="TRACE"/>
         <appender-ref ref="console"/>
     </logger>
 
     <logger name="org.apache.ibatis" additivity="false">
-        <level value="INFO"/>
+        <level value="TRACE"/>
         <appender-ref ref="console"/>
     </logger>
     <logger name="org.mybatis" additivity="false">
-        <level value="INFO"/>
+        <level value="TRACE"/>
         <appender-ref ref="console"/>
     </logger>
 
     <logger name="org.springframework" additivity="false">
-        <level value="INFO"/>
+        <level value="TRACE"/>
         <appender-ref ref="console"/>
     </logger>
 
     <logger name="org.apache.zookeeper" additivity="false">
-        <level value="INFO"/>
+        <level value="TRACE"/>
         <appender-ref ref="console"/>
     </logger>
 
     <logger name="org.apache.hadoop.hbase" additivity="false">
-        <level value="INFO"/>
+        <level value="TRACE"/>
         <appender-ref ref="console"/>
     </logger>
     <logger name="org.apache.hadoop.ipc" additivity="false">
-        <level value="INFO"/>
+        <level value="TRACE"/>
         <appender-ref ref="console"/>
     </logger>
     <logger name="org.apache.hadoop" additivity="false">
-        <level value="INFO"/>
+        <level value="TRACE"/>
         <appender-ref ref="console"/>
     </logger>
 
     <root>
-        <level value="INFO"/>
+        <level value="TRACE"/>
         <appender-ref ref="console"/>
     </root>
 </log4j:configuration>

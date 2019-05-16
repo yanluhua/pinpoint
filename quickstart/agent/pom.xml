@@ -15,19 +15,19 @@
         <dependency>
             <groupId>com.navercorp.pinpoint</groupId>
             <artifactId>pinpoint-profiler</artifactId>
-            <version>${project.version}</version>
+            <version>1.8.3-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.navercorp.pinpoint</groupId>
             <artifactId>pinpoint-profiler-optional</artifactId>
-            <version>${project.version}</version>
+            <version>1.8.3-SNAPSHOT</version>
             <scope>runtime</scope>
             <type>pom</type>
         </dependency>
         <dependency>
             <groupId>com.navercorp.pinpoint</groupId>
             <artifactId>pinpoint-bootstrap-core-optional</artifactId>
-            <version>${project.version}</version>
+            <version>1.8.3-SNAPSHOT</version>
             <scope>runtime</scope>
         </dependency>
 
@@ -35,7 +35,7 @@
         <dependency>
             <groupId>com.navercorp.pinpoint</groupId>
             <artifactId>pinpoint-plugins</artifactId>
-            <version>${project.version}</version>
+            <version>1.8.3-SNAPSHOT</version>
             <type>pom</type>
         </dependency>
     </dependencies>
