@@ -7,7 +7,7 @@
     </organization>
     <groupId>com.navercorp.pinpoint</groupId>
     <artifactId>pinpoint-quickstart-agent</artifactId>
-    <version>${maven.pinpoint.version}</version>
+    <version>1.8.3-SNAPSHOT</version>
     <name>Pinpoint Agent QuickStart </name>
     <packaging>jar</packaging>
 
