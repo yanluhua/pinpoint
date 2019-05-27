@@ -818,7 +818,7 @@
                         <exclude>**/*$*</exclude>
                     </excludes>
                     <argLine>-Dfile.encoding=${encoding}</argLine>
-                    <jvm>${test.jdk.home}/bin/java</jvm>
+                  <!--  <jvm>${test.jdk.home}/bin/java</jvm>-->
                     <forkMode>once</forkMode>
                 </configuration>
             </plugin>
