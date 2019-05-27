@@ -1,0 +1,14 @@
+<div class="l-chart-wrapper">
+    <div class="l-chart-title">
+        <span>Chart Order</span>
+    </div>
+    <div class="l-chart-list">
+        <pp-chart-layout
+            [emptyText]="i18nText.empty"
+            [column]="column"
+            [chartList]="chartList"
+            (outUpdateChartOrder)="onUpdateChartOrder($event)"
+            (outRemoveChart)="onRemoveChart($event)"
+        ></pp-chart-layout>
+    </div>
+</div>

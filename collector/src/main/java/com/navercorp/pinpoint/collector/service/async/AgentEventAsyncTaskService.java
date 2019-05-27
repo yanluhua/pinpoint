@@ -19,9 +19,7 @@ package com.navercorp.pinpoint.collector.service.async;
 import com.navercorp.pinpoint.collector.service.AgentEventService;
 import com.navercorp.pinpoint.common.server.bo.event.AgentEventBo;
 import com.navercorp.pinpoint.common.server.util.AgentEventType;
-import com.navercorp.pinpoint.rpc.packet.HandshakePropertyType;
-import com.navercorp.pinpoint.rpc.server.PinpointServer;
-import org.apache.commons.collections.MapUtils;
+import com.navercorp.pinpoint.rpc.server.ChannelProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,18 +41,17 @@ public class AgentEventAsyncTaskService {
     private AgentEventService agentEventService;
 
     @Async("agentEventWorker")
-    public void handleEvent(final Map<Object, Object> channelProperties, long eventTimestamp, AgentEventType eventType) {
-        Objects.requireNonNull(channelProperties, "pinpointServer must not be null");
-        Objects.requireNonNull(eventType, "pinpointServer must not be null");
-
-        if (MapUtils.isEmpty(channelProperties)) {
+    public void handleEvent(final ChannelProperties channelProperties, long eventTimestamp, AgentEventType eventType) {
+        if (channelProperties == null) {
             // It can occurs CONNECTED -> RUN_WITHOUT_HANDSHAKE -> CLOSED(UNEXPECTED_CLOSE_BY_CLIENT, ERROR_UNKNOWN)
+            // TODO channelProperties is null
             logger.warn("maybe not yet received the handshake data - pinpointServer:{}", channelProperties);
             return;
         }
+        Objects.requireNonNull(eventType, "eventType must not be null");
 
-        final String agentId = MapUtils.getString(channelProperties, HandshakePropertyType.AGENT_ID.getName());
-        final long startTimestamp = MapUtils.getLong(channelProperties, HandshakePropertyType.START_TIMESTAMP.getName());
+        final String agentId = channelProperties.getAgentId();
+        final long startTimestamp = channelProperties.getStartTime();
         final AgentEventBo agentEventBo = newAgentEventBo(agentId, startTimestamp, eventTimestamp, eventType);
         this.agentEventService.insert(agentEventBo);
     }

@@ -22,6 +22,9 @@ import com.navercorp.pinpoint.collector.util.ManagedAgentLifeCycle;
 import com.navercorp.pinpoint.common.server.util.AgentEventType;
 import com.navercorp.pinpoint.common.server.util.AgentLifeCycleState;
 import com.navercorp.pinpoint.rpc.common.SocketStateCode;
+import com.navercorp.pinpoint.rpc.server.ChannelProperties;
+import com.navercorp.pinpoint.rpc.server.ChannelPropertiesFactory;
+import com.navercorp.pinpoint.rpc.server.DefaultChannelProperties;
 import com.navercorp.pinpoint.rpc.server.PinpointServer;
 import com.navercorp.pinpoint.rpc.server.handler.ServerStateChangeEventHandler;
 
@@ -46,6 +49,9 @@ public class AgentLifeCycleChangeEventHandler extends ServerStateChangeEventHand
     @Autowired
     private AgentEventAsyncTaskService agentEventAsyncTaskService;
 
+    @Autowired
+    private ChannelPropertiesFactory channelPropertiesFactory;
+
     @Override
     public void stateUpdated(PinpointServer pinpointServer, SocketStateCode updatedStateCode) {
         ManagedAgentLifeCycle managedAgentLifeCycle = ManagedAgentLifeCycle.getManagedAgentLifeCycleByStateCode(updatedStateCode);
@@ -54,10 +60,12 @@ public class AgentLifeCycleChangeEventHandler extends ServerStateChangeEventHand
         } else {
             logger.info("stateUpdated(). pinpointServer:{}, updatedStateCode:{}", pinpointServer, updatedStateCode);
 
-            long eventTimestamp = System.currentTimeMillis();
+            final long eventTimestamp = System.currentTimeMillis();
 
-            Map<Object, Object> channelProperties = pinpointServer.getChannelProperties();
-            AgentLifeCycleState agentLifeCycleState = managedAgentLifeCycle.getMappedState();
+            final Map<Object, Object> channelPropertiesMap = pinpointServer.getChannelProperties();
+            // nullable
+            final ChannelProperties channelProperties = channelPropertiesFactory.newChannelProperties(channelPropertiesMap);
+            final AgentLifeCycleState agentLifeCycleState = managedAgentLifeCycle.getMappedState();
             this.agentLifeCycleAsyncTaskService.handleLifeCycleEvent(channelProperties, eventTimestamp, agentLifeCycleState, managedAgentLifeCycle.getEventCounter());
             AgentEventType agentEventType = managedAgentLifeCycle.getMappedEvent();
             this.agentEventAsyncTaskService.handleEvent(channelProperties, eventTimestamp, agentEventType);

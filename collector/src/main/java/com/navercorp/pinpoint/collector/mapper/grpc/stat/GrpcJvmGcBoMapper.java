@@ -16,9 +16,9 @@
 
 package com.navercorp.pinpoint.collector.mapper.grpc.stat;
 
-import com.navercorp.pinpoint.common.server.bo.JvmGcType;
 import com.navercorp.pinpoint.common.server.bo.stat.JvmGcBo;
 import com.navercorp.pinpoint.grpc.trace.PJvmGc;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -27,9 +27,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class GrpcJvmGcBoMapper {
 
+    @Autowired
+    private GrpcJvmGcTypeMapper jvmGcTypeMapper;
+
     public JvmGcBo map(final PJvmGc jvmGc) {
         final JvmGcBo jvmGcBo = new JvmGcBo();
-        jvmGcBo.setGcType(JvmGcType.valueOf(jvmGc.getType().toString()));
+        jvmGcBo.setGcType(this.jvmGcTypeMapper.map(jvmGc.getType()));
         jvmGcBo.setHeapUsed(jvmGc.getJvmMemoryHeapUsed());
         jvmGcBo.setHeapMax(jvmGc.getJvmMemoryHeapMax());
         jvmGcBo.setNonHeapUsed(jvmGc.getJvmMemoryNonHeapUsed());
@@ -39,4 +42,3 @@ public class GrpcJvmGcBoMapper {
         return jvmGcBo;
     }
 }
-

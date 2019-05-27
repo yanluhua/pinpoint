@@ -8,6 +8,7 @@ import { ApplicationDataSourceChartDataService, IApplicationDataSourceChart } fr
 import { HELP_VIEWER_LIST } from 'app/core/components/help-viewer-popup/help-viewer-popup-container.component';
 import { InspectorChartContainer } from 'app/core/components/inspector-chart/inspector-chart-container';
 import { isThatType } from 'app/core/utils/util';
+import { InspectorPageService } from 'app/routes/inspector-page/inspector-page.service';
 
 @Component({
     selector: 'pp-application-data-source-chart-container',
@@ -26,7 +27,8 @@ export class ApplicationDataSourceChartContainerComponent extends InspectorChart
         analyticsService: AnalyticsService,
         dynamicPopupService: DynamicPopupService,
         componentFactoryResolver: ComponentFactoryResolver,
-        injector: Injector
+        injector: Injector,
+        inspectorPageService: InspectorPageService,
     ) {
         super(
             10,
@@ -38,7 +40,8 @@ export class ApplicationDataSourceChartContainerComponent extends InspectorChart
             analyticsService,
             dynamicPopupService,
             componentFactoryResolver,
-            injector
+            injector,
+            inspectorPageService
         );
     }
 
@@ -54,22 +57,14 @@ export class ApplicationDataSourceChartContainerComponent extends InspectorChart
         this.unsubscribe.complete();
     }
 
-    protected getChartData(range: number[]): void {
-        this.chartDataService.getData(range)
-            .subscribe(
-                (data: IApplicationDataSourceChart[] | AjaxException) => {
-                    if (isThatType<AjaxException>(data, 'exception')) {
-                        this.setErrObj(data);
-                    } else {
-                        this.chartData = data;
-                        this.sourceDataArr = this.makeChartData(data);
-                        this.setChartConfig(this.sourceDataArr[0]);
-                    }
-                },
-                () => {
-                    this.setErrObj();
-                }
-            );
+    chartDataResCallbackFn(data: IApplicationDataSourceChart[] | AjaxException | null): void {
+        if (!data || isThatType<AjaxException>(data, 'exception')) {
+            this.setErrObj(data);
+        } else {
+            this.chartData = data;
+            this.sourceDataArr = this.makeChartData(data);
+            this.setChartConfig(this.sourceDataArr[0]);
+        }
     }
 
     onSourceDataSelected(index: number): void {

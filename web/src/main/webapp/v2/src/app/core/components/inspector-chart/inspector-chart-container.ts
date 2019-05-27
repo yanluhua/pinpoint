@@ -1,15 +1,15 @@
 import { ComponentFactoryResolver, Injector } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import * as moment from 'moment-timezone';
-import { Subject, Observable, combineLatest, merge } from 'rxjs';
-import { filter, map, skip, withLatestFrom } from 'rxjs/operators';
+import { Subject, Observable, combineLatest, of } from 'rxjs';
+import { filter, map, skip, tap, catchError, takeUntil, switchMap } from 'rxjs/operators';
 
 import { II18nText, IChartConfig, IErrObj } from 'app/core/components/inspector-chart/inspector-chart.component';
 import { WebAppSettingDataService, NewUrlStateNotificationService, AnalyticsService, TRACKED_EVENT_LIST, StoreHelperService, DynamicPopupService } from 'app/shared/services';
 import { HELP_VIEWER_LIST, HelpViewerPopupContainerComponent } from 'app/core/components/help-viewer-popup/help-viewer-popup-container.component';
 import { IChartDataService, IChartDataFromServer } from 'app/core/components/inspector-chart/chart-data.service';
 import { isThatType } from 'app/core/utils/util';
-import { UrlPathId } from 'app/shared/models';
+import { InspectorPageService, ISourceForChart } from 'app/routes/inspector-page/inspector-page.service';
 
 export abstract class InspectorChartContainer {
     private previousRange: number[];
@@ -34,7 +34,8 @@ export abstract class InspectorChartContainer {
         protected analyticsService: AnalyticsService,
         protected dynamicPopupService: DynamicPopupService,
         private componentFactoryResolver: ComponentFactoryResolver,
-        private injector: Injector
+        private injector: Injector,
+        private inspectorPageService: InspectorPageService,
     ) {}
 
     protected initI18nText(): void {
@@ -80,42 +81,30 @@ export abstract class InspectorChartContainer {
     }
 
     protected initChartData(): void {
-        merge(
-            this.storeHelperService.getRange(this.unsubscribe).pipe(
-                filter((range: number[]) => !!range),
-                withLatestFrom(this.storeHelperService.getInspectorTimelineSelectionRange(this.unsubscribe)),
-                map(([urlRange, storeRange]: number[][]) => {
-                    const urlService = this.newUrlStateNotificationService;
-                    const shouldUseInfoFromUrl = urlService.isRealTimeMode() || urlService.isValueChanged(UrlPathId.PERIOD) || urlService.isValueChanged(UrlPathId.END_TIME);
-
-                    return shouldUseInfoFromUrl ? urlRange : storeRange;
-                })
-            ),
-            this.storeHelperService.getInspectorTimelineSelectionRange(this.unsubscribe).pipe(
-                skip(1),
-                filter((_: number[]) => !this.newUrlStateNotificationService.isRealTimeMode())
-            )
-        ).subscribe((range: number[]) => {
-            this.previousRange = range;
-            this.getChartData(range);
-        });
+        this.inspectorPageService.sourceForChart$.pipe(
+            takeUntil(this.unsubscribe),
+            tap(({range}: ISourceForChart) => this.previousRange = range),
+            switchMap(({range}: ISourceForChart) => {
+                return this.chartDataService.getData(range).pipe(
+                    catchError(() => of(null))
+                );
+            })
+        ).subscribe((data) => this.chartDataResCallbackFn(data));
     }
 
     onRetryGetChartData(): void {
-        this.getChartData(this.previousRange);
+        this.chartDataService.getData(this.previousRange).pipe(
+            catchError(() => of(null))
+        ).subscribe((data) => this.chartDataResCallbackFn(data));
     }
 
-    protected getChartData(range: number[]): void {
-        this.chartDataService.getData(range).subscribe((data: IChartDataFromServer | IChartDataFromServer[] | AjaxException) => {
-            if (isThatType<AjaxException>(data, 'exception')) {
-                this.setErrObj(data);
-            } else {
-                this.chartData = data;
-                this.setChartConfig(this.makeChartData(data));
-            }
-        }, () => {
-            this.setErrObj();
-        });
+    protected chartDataResCallbackFn(data: IChartDataFromServer | IChartDataFromServer[] | AjaxException | null): void {
+        if (!data || isThatType<AjaxException>(data, 'exception')) {
+            this.setErrObj(data);
+        } else {
+            this.chartData = data;
+            this.setChartConfig(this.makeChartData(data));
+        }
     }
 
     protected setChartConfig(data: {[key: string]: any} | {[key: string]: any}[]): void {
@@ -127,11 +116,15 @@ export abstract class InspectorChartContainer {
         };
     }
 
-    protected setErrObj(data?: AjaxException): void {
-        this.errObj = {
-            errType: data ? 'EXCEPTION' : 'ELSE',
-            errMessage: data ? data.exception.message : null
-        };
+    protected setErrObj(data: any): void {
+        this.errObj = data ?
+            {
+                errType: 'EXCEPTION',
+                errMessage: data.exception.message
+            } : {
+                errType: 'ELSE',
+                errMessage: null
+            };
     }
 
     protected isDataEmpty(data: {[key: string]: any} | {[key: string]: any}[]): boolean {

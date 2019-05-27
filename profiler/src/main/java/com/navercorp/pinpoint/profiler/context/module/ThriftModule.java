@@ -21,22 +21,29 @@ import com.google.inject.PrivateModule;
 import com.google.inject.Scopes;
 import com.google.inject.TypeLiteral;
 import com.google.inject.name.Names;
+import com.navercorp.pinpoint.bootstrap.config.ThriftTransportConfig;
 import com.navercorp.pinpoint.profiler.context.compress.SpanProcessor;
+import com.navercorp.pinpoint.profiler.context.id.TransactionIdEncoder;
 import com.navercorp.pinpoint.profiler.context.provider.CommandDispatcherProvider;
-import com.navercorp.pinpoint.profiler.context.provider.ConnectionFactoryProviderProvider;
-import com.navercorp.pinpoint.profiler.context.provider.HeaderTBaseSerializerProvider;
-import com.navercorp.pinpoint.profiler.context.provider.MetadataMessageConverterProvider;
-import com.navercorp.pinpoint.profiler.context.provider.PinpointClientFactoryProvider;
-import com.navercorp.pinpoint.profiler.context.provider.SpanDataSenderProvider;
-import com.navercorp.pinpoint.profiler.context.provider.SpanProcessorProvider;
-import com.navercorp.pinpoint.profiler.context.provider.SpanStatClientFactoryProvider;
-import com.navercorp.pinpoint.profiler.context.provider.StatDataSenderProvider;
-import com.navercorp.pinpoint.profiler.context.provider.TcpDataSenderProvider;
+import com.navercorp.pinpoint.profiler.context.provider.thrift.ConnectionFactoryProviderProvider;
+import com.navercorp.pinpoint.profiler.context.provider.thrift.HeaderTBaseSerializerProvider;
+import com.navercorp.pinpoint.profiler.context.provider.thrift.MetadataMessageConverterProvider;
+import com.navercorp.pinpoint.profiler.context.provider.thrift.PinpointClientFactoryProvider;
+import com.navercorp.pinpoint.profiler.context.provider.thrift.SpanDataSenderProvider;
+import com.navercorp.pinpoint.profiler.context.provider.thrift.SpanProcessorProvider;
+import com.navercorp.pinpoint.profiler.context.provider.thrift.SpanStatClientFactoryProvider;
+import com.navercorp.pinpoint.profiler.context.provider.thrift.StatDataSenderProvider;
+import com.navercorp.pinpoint.profiler.context.provider.thrift.TcpDataSenderProvider;
+import com.navercorp.pinpoint.profiler.context.provider.thrift.ThriftTransportConfigProvider;
+import com.navercorp.pinpoint.profiler.context.thrift.DefaultTransactionIdEncoder;
 import com.navercorp.pinpoint.profiler.context.thrift.MessageConverter;
 import com.navercorp.pinpoint.profiler.context.thrift.SpanThriftMessageConverterProvider;
+import com.navercorp.pinpoint.profiler.context.thrift.StatThriftMessageConverterProvider;
+import com.navercorp.pinpoint.profiler.context.thrift.ThriftMessageToResultConverterProvider;
 import com.navercorp.pinpoint.profiler.receiver.CommandDispatcher;
 import com.navercorp.pinpoint.profiler.sender.DataSender;
 import com.navercorp.pinpoint.profiler.sender.EnhancedDataSender;
+import com.navercorp.pinpoint.profiler.sender.ResultResponse;
 import com.navercorp.pinpoint.rpc.client.ConnectionFactoryProvider;
 import com.navercorp.pinpoint.rpc.client.PinpointClientFactory;
 import com.navercorp.pinpoint.thrift.dto.TSpan;
@@ -50,6 +57,9 @@ import org.apache.thrift.TBase;
 public class ThriftModule extends PrivateModule {
     @Override
     protected void configure() {
+        bind(ThriftTransportConfig.class).toProvider(ThriftTransportConfigProvider.class).in(Scopes.SINGLETON);
+        bind(TransactionIdEncoder.class).to(DefaultTransactionIdEncoder.class).in(Scopes.SINGLETON);
+
         Key<CommandDispatcher> commandDispatcher = Key.get(CommandDispatcher.class);
         bind(commandDispatcher).toProvider(CommandDispatcherProvider.class).in(Scopes.SINGLETON);
 //        expose(commandDispatcher);
@@ -82,6 +92,11 @@ public class ThriftModule extends PrivateModule {
 //        expose(metadataMessageConverterKey);
 
 
+        // Stat Thrift Converter
+        TypeLiteral<MessageConverter<TBase<?, ?>>> statMessageConverter = new TypeLiteral<MessageConverter<TBase<?, ?>>>() {};
+        Key<MessageConverter<TBase<?, ?>>> statMessageConverterKey = Key.get(statMessageConverter, StatConverter.class);
+        bind(statMessageConverterKey).toProvider(StatThriftMessageConverterProvider.class ).in(Scopes.SINGLETON);
+
         Key<DataSender> spanDataSender = Key.get(DataSender.class, SpanDataSender.class);
         bind(spanDataSender).toProvider(SpanDataSenderProvider.class).in(Scopes.SINGLETON);
         expose(spanDataSender);
@@ -91,6 +106,15 @@ public class ThriftModule extends PrivateModule {
                 .toProvider(StatDataSenderProvider.class).in(Scopes.SINGLETON);
         expose(statDataSender);
 
+        // For AgentInfoSender
+//        TypeLiteral<AgentInfoFactory> agentInfoFactoryTypeLiteral = new TypeLiteral<AgentInfoFactory>() {};
+//        bind(agentInfoFactoryTypeLiteral).toProvider(AgentInfoFactoryProvider.class).in(Scopes.SINGLETON);
+//        expose(agentInfoFactoryTypeLiteral);
+
+        TypeLiteral<MessageConverter<ResultResponse>> resultMessageConverter = new TypeLiteral<MessageConverter<ResultResponse>>() {};
+        Key<MessageConverter<ResultResponse>> resultMessageConverterKey = Key.get(resultMessageConverter, ResultConverter.class);
+        bind(resultMessageConverterKey).toProvider(ThriftMessageToResultConverterProvider.class ).in(Scopes.SINGLETON);
+        expose(resultMessageConverterKey);
 
         Key<ModuleLifeCycle> rpcModuleLifeCycleKey = Key.get(ModuleLifeCycle.class, Names.named("RPC-MODULE"));
         bind(rpcModuleLifeCycleKey).to(ThriftModuleLifeCycle.class).in(Scopes.SINGLETON);

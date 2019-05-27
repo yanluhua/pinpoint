@@ -17,18 +17,18 @@
 package com.navercorp.pinpoint.collector.cluster;
 
 import com.navercorp.pinpoint.collector.cluster.zookeeper.ZookeeperProfilerClusterManager;
-import com.navercorp.pinpoint.common.util.Assert;
 import com.navercorp.pinpoint.common.util.StringUtils;
 import com.navercorp.pinpoint.rpc.common.SocketStateCode;
-import com.navercorp.pinpoint.rpc.packet.HandshakePropertyType;
+import com.navercorp.pinpoint.rpc.server.ChannelProperties;
+import com.navercorp.pinpoint.rpc.server.ChannelPropertiesFactory;
 import com.navercorp.pinpoint.rpc.server.PinpointServer;
 import com.navercorp.pinpoint.rpc.server.handler.ServerStateChangeEventHandler;
-import com.navercorp.pinpoint.rpc.util.MapUtils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * @author Taejin Koo
@@ -38,33 +38,43 @@ public class ClusterPointStateChangedEventHandler extends ServerStateChangeEvent
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     private final ZookeeperProfilerClusterManager zookeeperProfilerClusterManager;
+    private final ChannelPropertiesFactory channelPropertiesFactory;
 
-    public ClusterPointStateChangedEventHandler(ZookeeperProfilerClusterManager zookeeperProfilerClusterManager) {
-        this.zookeeperProfilerClusterManager = Assert.requireNonNull(zookeeperProfilerClusterManager, "zookeeperProfilerClusterManager must not be null");
+    public ClusterPointStateChangedEventHandler(ChannelPropertiesFactory channelPropertiesFactory, ZookeeperProfilerClusterManager zookeeperProfilerClusterManager) {
+        this.channelPropertiesFactory = Objects.requireNonNull(channelPropertiesFactory, "channelPropertiesFactory must not be null");
+        this.zookeeperProfilerClusterManager = Objects.requireNonNull(zookeeperProfilerClusterManager, "zookeeperProfilerClusterManager must not be null");
     }
 
     @Override
     public void stateUpdated(PinpointServer pinpointServer, SocketStateCode updatedStateCode) {
         logger.info("stateUpdated() started. (PinpointServer={}, updatedStateCode={})", pinpointServer, updatedStateCode);
 
-        Map agentProperties = pinpointServer.getChannelProperties();
+        Map<Object, Object> channelPropertiesMap = pinpointServer.getChannelProperties();
+        ChannelProperties channelProperties = channelPropertiesFactory.newChannelProperties(channelPropertiesMap);
         // skip when applicationName and agentId is unknown
-        if (skipAgent(agentProperties)) {
+        if (skipAgent(channelProperties)) {
             return;
         }
 
         if (SocketStateCode.RUN_DUPLEX == updatedStateCode) {
-            ThriftAgentConnection pinpointServerClusterPoint = new ThriftAgentConnection(pinpointServer);
+            ClusterPoint<byte[]> pinpointServerClusterPoint = newClusterPoint(pinpointServer, channelProperties);
             zookeeperProfilerClusterManager.register(pinpointServerClusterPoint);
         } else if (SocketStateCode.isClosed(updatedStateCode)) {
-            ThriftAgentConnection pinpointServerClusterPoint = new ThriftAgentConnection(pinpointServer);
+            ClusterPoint<byte[]> pinpointServerClusterPoint = newClusterPoint(pinpointServer, channelProperties);
             zookeeperProfilerClusterManager.unregister(pinpointServerClusterPoint);
         }
     }
 
-    private boolean skipAgent(Map<Object, Object> agentProperties) {
-        String applicationName = MapUtils.getString(agentProperties, HandshakePropertyType.APPLICATION_NAME.getName());
-        String agentId = MapUtils.getString(agentProperties, HandshakePropertyType.AGENT_ID.getName());
+    private ClusterPoint<byte[]> newClusterPoint(PinpointServer pinpointServer, ChannelProperties channelProperties) {
+        return ThriftAgentConnection.newClusterPoint(pinpointServer, channelProperties);
+    }
+
+    private boolean skipAgent(ChannelProperties channelProperties) {
+        if (channelProperties == null) {
+            return true;
+        }
+        String applicationName = channelProperties.getApplicationName();
+        String agentId = channelProperties.getAgentId();
 
         if (StringUtils.hasText(applicationName) && StringUtils.hasText(agentId)) {
             return false;

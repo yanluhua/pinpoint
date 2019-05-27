@@ -3,6 +3,7 @@ syntax = "proto3";
 import "google/protobuf/empty.proto";
 import "Span.proto";
 import "Stat.proto";
+import "ThreadDump.proto";
 import "Cmd.proto";
 
 option java_multiple_files = true;
@@ -50,5 +51,14 @@ service ProfilerCommandService {
     }
 
     rpc CommandEcho (PCmdEchoResponse) returns (google.protobuf.Empty) {
+    }
+
+    rpc CommandStreamActiveThreadCount (stream PCmdActiveThreadCountRes) returns (google.protobuf.Empty) {
+    }
+
+    rpc CommandActiveThreadDump (PCmdActiveThreadDumpRes) returns (google.protobuf.Empty) {
+    }
+
+    rpc CommandActiveThreadLightDump (PCmdActiveThreadLightDumpRes) returns (google.protobuf.Empty) {
     }
 }
